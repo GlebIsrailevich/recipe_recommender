@@ -163,3 +163,10 @@ cython_debug/
 recsys_tests
 povarenok
 recipes_normalized.csv
+interactions_df.csv
+src/instructions
+src/ease_pipeline/data
+src/matching/df_matches_faiss_new.csv
+src\matching\df_matches_stupid.csv
+src/matching
+src/tests
