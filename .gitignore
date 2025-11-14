@@ -162,3 +162,4 @@ cython_debug/
 #.idea/
 recsys_tests
 povarenok
+recipes_normalized.csv
