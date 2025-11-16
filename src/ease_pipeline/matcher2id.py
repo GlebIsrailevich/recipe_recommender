@@ -1,6 +1,6 @@
 """
-Vkusvill Mapper - Convert local IDs to Vkusvill IDs
-Provides utilities for mapping between local model IDs and Vkusvill product IDs
+Vkusvill Mapper - Convert internal IDs to external Vkusvill IDs
+Provides utilities for mapping between internal model IDs and external Vkusvill product IDs
 """
 
 import json
@@ -10,155 +10,175 @@ from typing import Dict, List, Optional
 
 class VkussvillMapper:
     """
-    Maps between local model IDs and Vkusvill product IDs.
+    Maps between internal model IDs (pov) and external Vkusvill product IDs (vv).
 
     Usage:
-        mapper = VkussvillMapper('src/ease_pipeline/data/cooker2vkussvil.json')
+        mapper = VkussvillMapper(
+            'src/ease_pipeline/data/items_dict_vv2pov_str.json',
+            'src/ease_pipeline/data/items_dict_pov2vv_str.json'
+        )
 
-        # Convert local IDs to Vkusvill IDs
-        vkusvill_ids = mapper.local_to_vkusvill([0, 1, 2, 3])
+        # Convert external Vkusvill IDs to internal IDs (input)
+        internal_ids = mapper.vkusvill_to_internal([4862, 2964, 8964])
 
-        # Convert Vkusvill IDs back to local IDs
-        local_ids = mapper.vkusvill_to_local([4862, 2964, 8964])
+        # Convert internal IDs back to external Vkusvill IDs (output)
+        vkusvill_ids = mapper.internal_to_vkusvill([0, 1, 2, 3])
 
-        # Check if local ID exists
-        if mapper.has_local_id(5):
+        # Check if internal ID exists
+        if mapper.has_internal_id(5):
             vkusvill_id = mapper.get_vkusvill_id(5)
     """
 
-    def __init__(self, mapping_path: str):
+    def __init__(self, vv2pov_path: str, pov2vv_path: str):
         """
-        Initialize the mapper with local to Vkusvill ID mappings.
+        Initialize the mapper with bidirectional mappings.
 
         Args:
-            mapping_path: Path to JSON file with local_id->vkusvill_id mappings
+            vv2pov_path: Path to JSON file with vkusvill_id->internal_id mappings (for input)
+            pov2vv_path: Path to JSON file with internal_id->vkusvill_id mappings (for output)
         """
-        self.mapping_path = Path(mapping_path)
+        self.vv2pov_path = Path(vv2pov_path)
+        self.pov2vv_path = Path(pov2vv_path)
 
-        # Load mappings
-        with open(self.mapping_path, "r", encoding="utf-8") as f:
-            self.local2vkusvill = json.load(f)
+        # Load vkusvill to internal mapping (for input)
+        with open(self.vv2pov_path, "r", encoding="utf-8") as f:
+            vv2pov_data = json.load(f)
 
-        # Convert string keys to int
-        self.local2vkusvill: Dict[int, int] = {
-            int(k): v for k, v in self.local2vkusvill.items()
+        # Convert string keys and values to int
+        self.vkusvill2internal: Dict[int, int] = {
+            int(k): int(v) for k, v in vv2pov_data.items()
         }
 
-        # Create reverse mapping: vkusvill_id -> local_id
-        self.vkusvill2local: Dict[int, int] = {
-            v: k for k, v in self.local2vkusvill.items()
+        # Load internal to vkusvill mapping (for output)
+        with open(self.pov2vv_path, "r", encoding="utf-8") as f:
+            pov2vv_data = json.load(f)
+
+        # Convert string keys to int, values are already strings representing IDs
+        self.internal2vkusvill: Dict[int, int] = {
+            int(k): int(v) for k, v in pov2vv_data.items()
         }
 
         print(
-            f"Loaded {len(self.local2vkusvill)} ID mappings from {self.mapping_path.name}"
+            f"Loaded {len(self.vkusvill2internal)} vv->pov mappings from {self.vv2pov_path.name}"
+        )
+        print(
+            f"Loaded {len(self.internal2vkusvill)} pov->vv mappings from {self.pov2vv_path.name}"
         )
 
-    def local_to_vkusvill(
-        self, local_ids: List[int], skip_unknown: bool = True, warn_unknown: bool = True
+    def internal_to_vkusvill(
+        self, internal_ids: List[int], skip_unknown: bool = True, warn_unknown: bool = True
     ) -> List[int]:
         """
-        Convert local IDs to Vkusvill IDs.
+        Convert internal IDs to external Vkusvill IDs (for output).
 
         Args:
-            local_ids: List of local model IDs
+            internal_ids: List of internal model IDs
             skip_unknown: If True, skip unknown IDs; if False, raise error
             warn_unknown: If True, print warnings for unknown IDs
 
         Returns:
-            List of Vkusvill product IDs
+            List of external Vkusvill product IDs
 
         Raises:
             ValueError: If skip_unknown=False and unknown ID found
         """
         vkusvill_ids = []
 
-        for local_id in local_ids:
-            if local_id in self.local2vkusvill:
-                vkusvill_ids.append(self.local2vkusvill[local_id])
+        for internal_id in internal_ids:
+            if internal_id in self.internal2vkusvill:
+                vkusvill_ids.append(self.internal2vkusvill[internal_id])
             else:
                 if warn_unknown:
-                    print(f"Warning: Local ID '{local_id}' not found in mappings")
+                    print(f"Warning: Internal ID '{internal_id}' not found in mappings")
                 if not skip_unknown:
-                    raise ValueError(f"Unknown local ID: '{local_id}'")
+                    raise ValueError(f"Unknown internal ID: '{internal_id}'")
 
         return vkusvill_ids
 
-    def vkusvill_to_local(
-        self, vkusvill_ids: List[int], default_format: str = "Unknown_{id}"
+    def vkusvill_to_internal(
+        self, vkusvill_ids: List[int], skip_unknown: bool = True, warn_unknown: bool = True
     ) -> List[int]:
         """
-        Convert Vkusvill IDs to local IDs.
+        Convert external Vkusvill IDs to internal IDs (for input).
 
         Args:
-            vkusvill_ids: List of Vkusvill product IDs
-            default_format: Format string for unknown IDs (use {id} placeholder)
+            vkusvill_ids: List of external Vkusvill product IDs
+            skip_unknown: If True, skip unknown IDs; if False, raise error
+            warn_unknown: If True, print warnings for unknown IDs
 
         Returns:
-            List of local model IDs
+            List of internal model IDs
+
+        Raises:
+            ValueError: If skip_unknown=False and unknown ID found
         """
-        local_ids = []
+        internal_ids = []
 
         for vkusvill_id in vkusvill_ids:
-            if vkusvill_id in self.vkusvill2local:
-                local_ids.append(self.vkusvill2local[vkusvill_id])
+            if vkusvill_id in self.vkusvill2internal:
+                internal_ids.append(self.vkusvill2internal[vkusvill_id])
             else:
-                # For unknown IDs, we could either skip or use a placeholder
-                # Here we skip them to maintain consistency
-                pass
+                if warn_unknown:
+                    print(f"Warning: Vkusvill ID '{vkusvill_id}' not found in mappings")
+                if not skip_unknown:
+                    raise ValueError(f"Unknown Vkusvill ID: '{vkusvill_id}'")
+                # Skip unknown IDs when skip_unknown=True
 
-        return local_ids
+        return internal_ids
 
-    def get_vkusvill_id(self, local_id: int) -> Optional[int]:
+    def get_vkusvill_id(self, internal_id: int) -> Optional[int]:
         """
-        Get Vkusvill ID for a single local ID.
+        Get external Vkusvill ID for a single internal ID.
 
         Args:
-            local_id: Local model ID
+            internal_id: Internal model ID
 
         Returns:
-            Vkusvill product ID or None if not found
+            External Vkusvill product ID or None if not found
         """
-        return self.local2vkusvill.get(local_id)
+        return self.internal2vkusvill.get(internal_id)
 
-    def get_local_id(self, vkusvill_id: int) -> Optional[int]:
+    def get_internal_id(self, vkusvill_id: int) -> Optional[int]:
         """
-        Get local ID for a single Vkusvill ID.
+        Get internal ID for a single external Vkusvill ID.
 
         Args:
-            vkusvill_id: Vkusvill product ID
+            vkusvill_id: External Vkusvill product ID
 
         Returns:
-            Local model ID or None if not found
+            Internal model ID or None if not found
         """
-        return self.vkusvill2local.get(vkusvill_id)
+        return self.vkusvill2internal.get(vkusvill_id)
 
-    def has_local_id(self, local_id: int) -> bool:
-        """Check if local ID exists in mappings."""
-        return local_id in self.local2vkusvill
+    def has_internal_id(self, internal_id: int) -> bool:
+        """Check if internal ID exists in mappings."""
+        return internal_id in self.internal2vkusvill
 
     def has_vkusvill_id(self, vkusvill_id: int) -> bool:
-        """Check if Vkusvill ID exists in mappings."""
-        return vkusvill_id in self.vkusvill2local
+        """Check if external Vkusvill ID exists in mappings."""
+        return vkusvill_id in self.vkusvill2internal
 
-    def get_all_local_ids(self) -> List[int]:
-        """Get list of all available local IDs."""
-        return sorted(self.local2vkusvill.keys())
+    def get_all_internal_ids(self) -> List[int]:
+        """Get list of all available internal IDs."""
+        return sorted(self.internal2vkusvill.keys())
 
     def get_all_vkusvill_ids(self) -> List[int]:
-        """Get list of all available Vkusvill IDs."""
-        return sorted(self.vkusvill2local.keys())
+        """Get list of all available external Vkusvill IDs."""
+        return sorted(self.vkusvill2internal.keys())
 
 
 def load_vkusvill_mapper(
-    mapping_path: str,
+    vv2pov_path: str = "src/ease_pipeline/data/items_dict_vv2pov_str.json",
+    pov2vv_path: str = "src/ease_pipeline/data/items_dict_pov2vv_str.json",
 ) -> VkussvillMapper:
     """
     Convenience function to load the Vkusvill ID mapper.
 
     Args:
-        mapping_path: Path to the local-to-vkusvill mapping JSON file
+        vv2pov_path: Path to the vkusvill-to-internal mapping JSON file
+        pov2vv_path: Path to the internal-to-vkusvill mapping JSON file
 
     Returns:
         Initialized VkussvillMapper
     """
-    return VkussvillMapper(mapping_path)
+    return VkussvillMapper(vv2pov_path, pov2vv_path)

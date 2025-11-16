@@ -6,9 +6,8 @@ Simple API for getting ingredient recommendations from user activity
 import pickle
 from typing import List, Tuple
 
-from config import EASEMODEL, MAPPING, VKUSVILL_MAPPING
+from config import EASEMODEL, MAPPING, POV2VV, TOPPOPULAR, VV2POV
 from ease_map import EASERecommenderWithNames
-from input_map import IngredientMapper
 from matcher2id import VkussvillMapper
 from top_popular import TopPopular  # noqa: F401 - needed for pickle
 
@@ -34,8 +33,9 @@ class EASERecommendationSystem:
         self,
         model_path: str = EASEMODEL,
         names_path: str = MAPPING,
-        toppop_path="D:/gleb/Recsys_projeccts/sirius_seminars/vkusvill_case/src/ease_pipeline/data/toppop_model.pkl",
-        vkusvill_mapping_path: str = VKUSVILL_MAPPING,
+        toppop_path=TOPPOPULAR,
+        pov2vv: str = POV2VV,
+        vv2pov: str = VV2POV,
     ):
         """
         Initialize the recommendation system.
@@ -50,10 +50,10 @@ class EASERecommendationSystem:
         print("-" * 70)
 
         # Load ingredient mapper (for local IDs to names)
-        self.mapper = IngredientMapper(names_path)
+        # self.mapper = IngredientMapper(names_path)
 
-        # Load Vkusvill mapper (for local IDs to Vkusvill IDs)
-        self.vkusvill_mapper = VkussvillMapper(vkusvill_mapping_path)
+        # Load Vkusvill mapper (for internal IDs to external Vkusvill IDs)
+        self.vkusvill_mapper = VkussvillMapper(vv2pov, pov2vv)
 
         # Load EASE recommender
         self.recommender = EASERecommenderWithNames(
@@ -84,21 +84,21 @@ class EASERecommendationSystem:
         Returns:
             List of recommended Vkusvill product IDs (exactly top_k items)
         """
-        # Convert Vkusvill IDs to local IDs
-        local_ids = self.vkusvill_mapper.vkusvill_to_local(user_activity)
+        # Convert external Vkusvill IDs to internal IDs
+        internal_ids = self.vkusvill_mapper.vkusvill_to_internal(user_activity)
 
         # If no valid items, use top popular
-        if not local_ids:
-            return self._get_top_popular_vkusvill_ids(top_k, exclude_local_ids=[])
+        if not internal_ids:
+            return self._get_top_popular_vkusvill_ids(top_k, exclude_internal_ids=[])
 
-        # Get recommendations (as local IDs)
-        rec_local_ids = self.recommender.recommend(
-            local_ids, top_k=top_k, exclude_seen=exclude_seen
+        # Get recommendations (as internal IDs)
+        rec_internal_ids = self.recommender.recommend(
+            internal_ids, top_k=top_k, exclude_seen=exclude_seen
         )
 
-        # Convert local IDs to Vkusvill IDs
-        rec_vkusvill_ids = self.vkusvill_mapper.local_to_vkusvill(
-            rec_local_ids, skip_unknown=True, warn_unknown=False
+        # Convert internal IDs to external Vkusvill IDs
+        rec_vkusvill_ids = self.vkusvill_mapper.internal_to_vkusvill(
+            rec_internal_ids, skip_unknown=True, warn_unknown=False
         )
 
         # Fill with top popular if needed
@@ -106,39 +106,39 @@ class EASERecommendationSystem:
             rec_vkusvill_ids = self._fill_with_top_popular(
                 rec_vkusvill_ids,
                 top_k,
-                exclude_local_ids=local_ids if exclude_seen else [],
+                exclude_internal_ids=internal_ids if exclude_seen else [],
             )
 
         return rec_vkusvill_ids[:top_k]
 
     def _get_top_popular_vkusvill_ids(
-        self, top_k: int, exclude_local_ids: List[int]
+        self, top_k: int, exclude_internal_ids: List[int]
     ) -> List[int]:
         """
         Get top popular items as Vkusvill IDs.
 
         Args:
             top_k: Number of items to return
-            exclude_local_ids: Local item IDs to exclude
+            exclude_internal_ids: Internal item IDs to exclude
 
         Returns:
             List of top popular Vkusvill product IDs
         """
-        exclude_set = set(exclude_local_ids)
-        popular_local_ids = []
+        exclude_set = set(exclude_internal_ids)
+        popular_internal_ids = []
 
-        for local_id in self.top_popular.recommendations:
-            if local_id not in exclude_set:
-                popular_local_ids.append(local_id)
-                if len(popular_local_ids) >= top_k:
+        for internal_id in self.top_popular.recommendations:
+            if internal_id not in exclude_set:
+                popular_internal_ids.append(internal_id)
+                if len(popular_internal_ids) >= top_k:
                     break
 
-        return self.vkusvill_mapper.local_to_vkusvill(
-            popular_local_ids, skip_unknown=True, warn_unknown=False
+        return self.vkusvill_mapper.internal_to_vkusvill(
+            popular_internal_ids, skip_unknown=True, warn_unknown=False
         )
 
     def _fill_with_top_popular(
-        self, current_recs: List[int], top_k: int, exclude_local_ids: List[int]
+        self, current_recs: List[int], top_k: int, exclude_internal_ids: List[int]
     ) -> List[int]:
         """
         Fill recommendations with top popular items to reach top_k.
@@ -146,7 +146,7 @@ class EASERecommendationSystem:
         Args:
             current_recs: Current recommendations (Vkusvill IDs)
             top_k: Target number of recommendations
-            exclude_local_ids: Local item IDs to exclude
+            exclude_internal_ids: Internal item IDs to exclude
 
         Returns:
             List of recommendations filled to top_k
@@ -154,29 +154,29 @@ class EASERecommendationSystem:
         if len(current_recs) >= top_k:
             return current_recs
 
-        # Get local IDs of current recommendations to avoid duplicates
-        current_local_ids = set()
+        # Get internal IDs of current recommendations to avoid duplicates
+        current_internal_ids = set()
         for vkusvill_id in current_recs:
-            local_id = self.vkusvill_mapper.get_local_id(vkusvill_id)
-            if local_id is not None:
-                current_local_ids.add(local_id)
+            internal_id = self.vkusvill_mapper.get_internal_id(vkusvill_id)
+            if internal_id is not None:
+                current_internal_ids.add(internal_id)
 
         # Add excluded IDs
-        exclude_set = set(exclude_local_ids) | current_local_ids
+        exclude_set = set(exclude_internal_ids) | current_internal_ids
 
         # Get additional items from top popular
         needed = top_k - len(current_recs)
-        additional_local_ids = []
+        additional_internal_ids = []
 
-        for local_id in self.top_popular.recommendations:
-            if local_id not in exclude_set:
-                additional_local_ids.append(local_id)
-                if len(additional_local_ids) >= needed:
+        for internal_id in self.top_popular.recommendations:
+            if internal_id not in exclude_set:
+                additional_internal_ids.append(internal_id)
+                if len(additional_internal_ids) >= needed:
                     break
 
         # Convert to Vkusvill IDs and append
-        additional_vkusvill_ids = self.vkusvill_mapper.local_to_vkusvill(
-            additional_local_ids, skip_unknown=True, warn_unknown=False
+        additional_vkusvill_ids = self.vkusvill_mapper.internal_to_vkusvill(
+            additional_internal_ids, skip_unknown=True, warn_unknown=False
         )
         return current_recs + additional_vkusvill_ids
 
@@ -195,25 +195,25 @@ class EASERecommendationSystem:
         Returns:
             List of tuples (vkusvill_id, score) - exactly top_k items
         """
-        # Convert Vkusvill IDs to local IDs
-        local_ids = self.vkusvill_mapper.vkusvill_to_local(user_activity)
+        # Convert external Vkusvill IDs to internal IDs
+        internal_ids = self.vkusvill_mapper.vkusvill_to_internal(user_activity)
 
         # If no valid items, use top popular with score 0.0
-        if not local_ids:
+        if not internal_ids:
             popular_vkusvill_ids = self._get_top_popular_vkusvill_ids(
-                top_k, exclude_local_ids=[]
+                top_k, exclude_internal_ids=[]
             )
             return [(vk_id, 0.0) for vk_id in popular_vkusvill_ids]
 
-        # Get recommendations with local IDs and scores
+        # Get recommendations with internal IDs and scores
         recs_with_scores = self.recommender.recommend_with_names(
-            local_ids, top_k=top_k, exclude_seen=exclude_seen
+            internal_ids, top_k=top_k, exclude_seen=exclude_seen
         )
 
-        # Extract local IDs and scores, convert to Vkusvill IDs
+        # Extract internal IDs and scores, convert to Vkusvill IDs
         results = []
-        for local_id, _, score in recs_with_scores:
-            vkusvill_id = self.vkusvill_mapper.get_vkusvill_id(local_id)
+        for internal_id, _, score in recs_with_scores:
+            vkusvill_id = self.vkusvill_mapper.get_vkusvill_id(internal_id)
             if vkusvill_id is not None:
                 results.append((vkusvill_id, score))
 
@@ -226,7 +226,7 @@ class EASERecommendationSystem:
             filled_vkusvill_ids = self._fill_with_top_popular(
                 current_vkusvill_ids,
                 top_k,
-                exclude_local_ids=local_ids if exclude_seen else [],
+                exclude_internal_ids=internal_ids if exclude_seen else [],
             )
 
             # Add new items with score 0.0
@@ -254,13 +254,13 @@ class EASERecommendationSystem:
                 - scores: List of relevance scores (exactly top_k)
                 - top_recommendations: List of (vkusvill_id, score) tuples (exactly top_k)
         """
-        # Convert Vkusvill IDs to local IDs
-        local_ids = self.vkusvill_mapper.vkusvill_to_local(user_activity)
+        # Convert external Vkusvill IDs to internal IDs
+        internal_ids = self.vkusvill_mapper.vkusvill_to_internal(user_activity)
 
         # If no valid items, use top popular
-        if not local_ids:
+        if not internal_ids:
             popular_vkusvill_ids = self._get_top_popular_vkusvill_ids(
-                top_k, exclude_local_ids=[]
+                top_k, exclude_internal_ids=[]
             )
             return {
                 "user_products": [],
@@ -270,8 +270,8 @@ class EASERecommendationSystem:
             }
 
         # Get user product IDs (validated - convert back to Vkusvill IDs)
-        user_vkusvill_ids = self.vkusvill_mapper.local_to_vkusvill(
-            local_ids, skip_unknown=True, warn_unknown=False
+        user_vkusvill_ids = self.vkusvill_mapper.internal_to_vkusvill(
+            internal_ids, skip_unknown=True, warn_unknown=False
         )
 
         # Get recommendations with scores (with fallback)
