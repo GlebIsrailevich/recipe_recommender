@@ -1,1 +1,5 @@
 secrets.txt
+.venv
+/qwen_finetuned-bf16
+/qwen_finetuned_merged
+/results
