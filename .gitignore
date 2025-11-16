@@ -171,3 +171,4 @@ src\matching\df_matches_stupid.csv
 src/matching
 src/tests
 src/ease_pipeline/simple_example.py
+src/matching_pipeline

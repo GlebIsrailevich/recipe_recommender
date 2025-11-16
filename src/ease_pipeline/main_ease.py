@@ -4,7 +4,7 @@ Simple API for getting ingredient recommendations from user activity
 """
 
 import pickle
-from typing import List, Tuple
+from typing import List
 
 from config import EASEMODEL, MAPPING, POV2VV, TOPPOPULAR, VV2POV
 from ease_map import EASERecommenderWithNames
@@ -64,7 +64,8 @@ class EASERecommendationSystem:
         print(f"Loading Top Popular fallback from {toppop_path}...")
         with open(toppop_path, "rb") as f:
             self.top_popular = pickle.load(f)
-        print(f"   Top Popular loaded: {len(self.top_popular.recommendations)} items")
+        # ic(f"   Top Popular loaded: {self.top_popular.recommendations} ")
+        self.toppop_recs = self.top_popular.recommendations
 
         print("-" * 70)
         print("System ready!\n")
@@ -127,7 +128,7 @@ class EASERecommendationSystem:
         exclude_set = set(exclude_internal_ids)
         popular_internal_ids = []
 
-        for internal_id in self.top_popular.recommendations:
+        for internal_id in self.toppop_recs:
             if internal_id not in exclude_set:
                 popular_internal_ids.append(internal_id)
                 if len(popular_internal_ids) >= top_k:
@@ -168,7 +169,7 @@ class EASERecommendationSystem:
         needed = top_k - len(current_recs)
         additional_internal_ids = []
 
-        for internal_id in self.top_popular.recommendations:
+        for internal_id in self.toppop_recs:
             if internal_id not in exclude_set:
                 additional_internal_ids.append(internal_id)
                 if len(additional_internal_ids) >= needed:
@@ -180,116 +181,118 @@ class EASERecommendationSystem:
         )
         return current_recs + additional_vkusvill_ids
 
-    def get_recommendations_with_scores(
-        self, user_activity: List[int], top_k: int = 10, exclude_seen: bool = True
-    ) -> List[Tuple[int, float]]:
-        """
-        Get product recommendations with relevance scores.
-        Uses top popular items as fallback (with score 0.0) if needed.
+    # NOTE: Unused
+    # def get_recommendations_with_scores(
+    #     self, user_activity: List[int], top_k: int = 10, exclude_seen: bool = True
+    # ) -> List[Tuple[int, float]]:
+    #     """
+    #     Get product recommendations with relevance scores.
+    #     Uses top popular items as fallback (with score 0.0) if needed.
 
-        Args:
-            user_activity: List of Vkusvill product IDs the user has
-            top_k: Number of recommendations to return
-            exclude_seen: Whether to exclude products user already has
+    #     Args:
+    #         user_activity: List of Vkusvill product IDs the user has
+    #         top_k: Number of recommendations to return
+    #         exclude_seen: Whether to exclude products user already has
 
-        Returns:
-            List of tuples (vkusvill_id, score) - exactly top_k items
-        """
-        # Convert external Vkusvill IDs to internal IDs
-        internal_ids = self.vkusvill_mapper.vkusvill_to_internal(user_activity)
+    #     Returns:
+    #         List of tuples (vkusvill_id, score) - exactly top_k items
+    #     """
+    #     # Convert external Vkusvill IDs to internal IDs
+    #     internal_ids = self.vkusvill_mapper.vkusvill_to_internal(user_activity)
 
-        # If no valid items, use top popular with score 0.0
-        if not internal_ids:
-            popular_vkusvill_ids = self._get_top_popular_vkusvill_ids(
-                top_k, exclude_internal_ids=[]
-            )
-            return [(vk_id, 0.0) for vk_id in popular_vkusvill_ids]
+    #     # If no valid items, use top popular with score 0.0
+    #     if not internal_ids:
+    #         popular_vkusvill_ids = self._get_top_popular_vkusvill_ids(
+    #             top_k, exclude_internal_ids=[]
+    #         )
+    #         return [(vk_id, 0.0) for vk_id in popular_vkusvill_ids]
 
-        # Get recommendations with internal IDs and scores
-        recs_with_scores = self.recommender.recommend_with_names(
-            internal_ids, top_k=top_k, exclude_seen=exclude_seen
-        )
+    #     # Get recommendations with internal IDs and scores
+    #     recs_with_scores = self.recommender.recommend_with_names(
+    #         internal_ids, top_k=top_k, exclude_seen=exclude_seen
+    #     )
 
-        # Extract internal IDs and scores, convert to Vkusvill IDs
-        results = []
-        for internal_id, _, score in recs_with_scores:
-            vkusvill_id = self.vkusvill_mapper.get_vkusvill_id(internal_id)
-            if vkusvill_id is not None:
-                results.append((vkusvill_id, score))
+    #     # Extract internal IDs and scores, convert to Vkusvill IDs
+    #     results = []
+    #     for internal_id, _, score in recs_with_scores:
+    #         vkusvill_id = self.vkusvill_mapper.get_vkusvill_id(internal_id)
+    #         if vkusvill_id is not None:
+    #             results.append((vkusvill_id, score))
 
-        # Fill with top popular if needed
-        if len(results) < top_k:
-            # Get current recommendation Vkusvill IDs
-            current_vkusvill_ids = [vk_id for vk_id, _ in results]
+    #     # Fill with top popular if needed
+    #     if len(results) < top_k:
+    #         # Get current recommendation Vkusvill IDs
+    #         current_vkusvill_ids = [vk_id for vk_id, _ in results]
 
-            # Fill to top_k
-            filled_vkusvill_ids = self._fill_with_top_popular(
-                current_vkusvill_ids,
-                top_k,
-                exclude_internal_ids=internal_ids if exclude_seen else [],
-            )
+    #         # Fill to top_k
+    #         filled_vkusvill_ids = self._fill_with_top_popular(
+    #             current_vkusvill_ids,
+    #             top_k,
+    #             exclude_internal_ids=internal_ids if exclude_seen else [],
+    #         )
 
-            # Add new items with score 0.0
-            for vk_id in filled_vkusvill_ids[len(current_vkusvill_ids) :]:
-                results.append((vk_id, 0.0))
+    #         # Add new items with score 0.0
+    #         for vk_id in filled_vkusvill_ids[len(current_vkusvill_ids) :]:
+    #             results.append((vk_id, 0.0))
 
-        return results[:top_k]
+    #     return results[:top_k]
 
-    def get_recommendations_detailed(
-        self, user_activity: List[int], top_k: int = 10, exclude_seen: bool = True
-    ) -> dict:
-        """
-        Get detailed recommendation information.
-        Uses top popular items as fallback if needed.
+    # NOTE: Unused
+    # def get_recommendations_detailed(
+    #     self, user_activity: List[int], top_k: int = 10, exclude_seen: bool = True
+    # ) -> dict:
+    #     """
+    #     Get detailed recommendation information.
+    #     Uses top popular items as fallback if needed.
 
-        Args:
-            user_activity: List of Vkusvill product IDs the user has
-            top_k: Number of recommendations to return
-            exclude_seen: Whether to exclude products user already has
+    #     Args:
+    #         user_activity: List of Vkusvill product IDs the user has
+    #         top_k: Number of recommendations to return
+    #         exclude_seen: Whether to exclude products user already has
 
-        Returns:
-            Dictionary with:
-                - user_products: List of valid Vkusvill IDs from input
-                - recommendations: List of recommended Vkusvill IDs (exactly top_k)
-                - scores: List of relevance scores (exactly top_k)
-                - top_recommendations: List of (vkusvill_id, score) tuples (exactly top_k)
-        """
-        # Convert external Vkusvill IDs to internal IDs
-        internal_ids = self.vkusvill_mapper.vkusvill_to_internal(user_activity)
+    #     Returns:
+    #         Dictionary with:
+    #             - user_products: List of valid Vkusvill IDs from input
+    #             - recommendations: List of recommended Vkusvill IDs (exactly top_k)
+    #             - scores: List of relevance scores (exactly top_k)
+    #             - top_recommendations: List of (vkusvill_id, score) tuples (exactly top_k)
+    #     """
+    #     # Convert external Vkusvill IDs to internal IDs
+    #     internal_ids = self.vkusvill_mapper.vkusvill_to_internal(user_activity)
 
-        # If no valid items, use top popular
-        if not internal_ids:
-            popular_vkusvill_ids = self._get_top_popular_vkusvill_ids(
-                top_k, exclude_internal_ids=[]
-            )
-            return {
-                "user_products": [],
-                "recommendations": popular_vkusvill_ids,
-                "scores": [0.0] * len(popular_vkusvill_ids),
-                "top_recommendations": [(vk_id, 0.0) for vk_id in popular_vkusvill_ids],
-            }
+    #     # If no valid items, use top popular
+    #     if not internal_ids:
+    #         popular_vkusvill_ids = self._get_top_popular_vkusvill_ids(
+    #             top_k, exclude_internal_ids=[]
+    #         )
+    #         return {
+    #             "user_products": [],
+    #             "recommendations": popular_vkusvill_ids,
+    #             "scores": [0.0] * len(popular_vkusvill_ids),
+    #             "top_recommendations": [(vk_id, 0.0) for vk_id in popular_vkusvill_ids],
+    #         }
 
-        # Get user product IDs (validated - convert back to Vkusvill IDs)
-        user_vkusvill_ids = self.vkusvill_mapper.internal_to_vkusvill(
-            internal_ids, skip_unknown=True, warn_unknown=False
-        )
+    #     # Get user product IDs (validated - convert back to Vkusvill IDs)
+    #     user_vkusvill_ids = self.vkusvill_mapper.internal_to_vkusvill(
+    #         internal_ids, skip_unknown=True, warn_unknown=False
+    #     )
 
-        # Get recommendations with scores (with fallback)
-        recs_with_scores = self.get_recommendations_with_scores(
-            user_activity, top_k=top_k, exclude_seen=exclude_seen
-        )
+    #     # Get recommendations with scores (with fallback)
+    #     recs_with_scores = self.get_recommendations_with_scores(
+    #         user_activity, top_k=top_k, exclude_seen=exclude_seen
+    #     )
 
-        # Extract components
-        recommendations = [vk_id for vk_id, _ in recs_with_scores]
-        scores = [score for _, score in recs_with_scores]
-        top_recommendations = recs_with_scores
+    #     # Extract components
+    #     recommendations = [vk_id for vk_id, _ in recs_with_scores]
+    #     scores = [score for _, score in recs_with_scores]
+    #     top_recommendations = recs_with_scores
 
-        return {
-            "user_products": user_vkusvill_ids,
-            "recommendations": recommendations,
-            "scores": scores,
-            "top_recommendations": top_recommendations,
-        }
+    #     return {
+    #         "user_products": user_vkusvill_ids,
+    #         "recommendations": recommendations,
+    #         "scores": scores,
+    #         "top_recommendations": top_recommendations,
+    #     }
 
     def batch_get_recommendations(
         self,
