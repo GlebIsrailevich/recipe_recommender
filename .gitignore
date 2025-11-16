@@ -172,3 +172,8 @@ src/matching
 src/tests
 src/ease_pipeline/simple_example.py
 src/matching_pipeline
+recsys_tests
+src/matching_pipeline
+src/postprocessing.py
+src/ease_validation_results.csv
+src/ease_popular/data

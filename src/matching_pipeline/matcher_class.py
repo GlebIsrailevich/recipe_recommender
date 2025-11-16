@@ -151,6 +151,7 @@ class VVCatalogIndex:
         self.penalize_ready_to_eat = penalize_ready_to_eat
         self._titles_fuzzy: List[str] = []
         self._faiss_title: Optional[FaissTfidfIndex] = None
+        self.vkussvil_unq_ids = []
 
     def fit(
         self,
@@ -322,6 +323,10 @@ class VVCatalogIndex:
                     best = cid
             if best is not None and best_score > 0.25:
                 it = self.items[best]
+                # FIXME
+
+                # if it.doc_id
+                self.vkussvil_unq_ids.append(it.doc_id)
                 return [
                     {
                         "score": round(float(best_score), 4),
@@ -333,7 +338,7 @@ class VVCatalogIndex:
                 ][:top_k]
 
             return []
-
+            # FIXME
         if not results:
             return []
 
@@ -343,6 +348,8 @@ class VVCatalogIndex:
         out: List[Dict] = []
         for score, cid, reasons in top:
             it = self.items[cid]
+            self.vkussvil_unq_ids.append(it.doc_id)
+
             out.append(
                 {
                     "score": round(float(score), 4),
