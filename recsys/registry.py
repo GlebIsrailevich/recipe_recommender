@@ -4,6 +4,7 @@ from .models.ease import EASERecommender
 # from .models.sasrec import SASRecRecommender
 # from .models.als import ALSRecommender
 from recsys.models.ease_popular.inference import EasePopularRecommender
+from recsys.models.llm_recs import LLMRecommender
 
 import logging
 logger = logging.getLogger(__name__)
@@ -11,26 +12,20 @@ logger = logging.getLogger(__name__)
 MODEL_REGISTRY: Dict[str, Dict] = {
     "ease_popular_v1": {
         "class": EasePopularRecommender,
-        "path": "models/ease_popular",  # сейчас по сути не используется, но оставляем
+        "path": "models/ease_popular",
     },
-    # "baseline_pop": {
-    #     "class": PopularityRecommender,
-    #     "path": "models/popularity/baseline.pkl",
-    # },
-    # "ease_v1": {
-    #     "class": EASERecommender,
-    #     "path": "models/ease/ease_v1.npz",
-    # },
-    # "sasrec_v1": {
-    #     "class": SASRecRecommender,
-    #     "path": "models/sasrec/sasrec_v1.pt",
-    # },
+    "llm_recs_v1": {
+        "class": LLMRecommender,
+        "path": "models/llm_recs",
+    },
 }
 
 DEFAULT_EXPERIMENT = {
-    "name": "main_recsys_ab",
+    "name": "main_recs_ab",
     "variants": {
-        "ease_popular_v1": 1.0,
+        "ease_popular": 0.5,
+        "llm_recs": 0.5,
+        # можно вывести 0.8 / 0.2 и т.п.
     },
 }
 
