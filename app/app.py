@@ -55,7 +55,7 @@ from db import (
     log_ui_event,   # новый helper
 )
 
-from recsys.registry import get_recommender_for_user
+# from recsys.registry import get_recommender_for_user
 from recsys.features import build_user_context
 
 
@@ -835,8 +835,22 @@ with recs_col:
             ctx = build_user_context(user_id=user_id, cart_items=cart_product_ids)
 
             # 2. Берём нужную модель из реестра (с учётом A/B, если включишь)
+            from recsys.registry import models_dict
+            from recsys.ab_testing import choose_variant_for_user  # noqa
+            DEFAULT_EXPERIMENT = {
+                "name": "main_recs_ab",
+                "variants": {
+                    "ease_popular": 0.5,
+                    "llm_recs": 0.5,
+                    # можно вывести 0.8 / 0.2 и т.п.
+                },
+            }
             try:
-                recsys_model = get_recommender_for_user(user_id)
+                variant = choose_variant_for_user(user_id, DEFAULT_EXPERIMENT)
+                print(variant)
+                print(type(variant))
+                recsys_model = models_dict[variant]
+                print(recsys_model)
             except Exception:
                 logger.exception(
                     "Ошибка при получении модели рекомендаций для user_id=%s",

@@ -9,10 +9,11 @@ class LLMWrapped:
         self.out_ids = LLMOutputSearchDB()
         self.model = vllm_recomender()
 
-    def idx2idx_llm_recs(self, input_idxs, user_id, k=10):
+    def recommend(self, input_idxs, user_id, k=10):
         names = self.int_ids.ids_to_names(input_idxs)
         if not names:
             return []
         cart_str = "; ".join(names)
         llm_raw = self.model.get_recs(cart_str, user_id, k)
+        print(llm_raw)
         return self.out_ids.search2list(llm_raw, limit=k)

@@ -8,8 +8,9 @@ from typing import List
 class InternalIDs2Names:
     def __init__(self, mapping_path: str | None = None):
         if mapping_path is None:
-            root_dir = Path(__file__).resolve().parents[2]
+            root_dir = Path(__file__).resolve().parents[3]
             mapping_path = root_dir / "models" / "llm_recs" / "vv_id2names.json"
+            print("!!!!! ", root_dir)
         else:
             mapping_path = Path(mapping_path)
 

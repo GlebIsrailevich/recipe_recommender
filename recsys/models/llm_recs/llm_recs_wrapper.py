@@ -8,8 +8,10 @@ class LLMRecommender(BaseRecommender):
         self.system: Optional[LLMWrapped] = None
 
     def load(self, model_path: str):
-        if self.system is None:
-            self.system = LLMWrapped()
+        if self.system is not None:
+            return  # уже загружено
+
+        self.system = LLMWrapped()
 
     def recommend(
         self,
@@ -22,4 +24,4 @@ class LLMRecommender(BaseRecommender):
             self.load("")
         if not cart_items:
             return []
-        return self.system.idx2idx_llm_recs(cart_items, user_id=user_id, k=k)
+        return self.system.recommend(cart_items, user_id=user_id, k=k)

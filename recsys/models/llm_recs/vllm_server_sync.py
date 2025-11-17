@@ -6,9 +6,9 @@ from vllm.engine.arg_utils import EngineArgs
 from vllm.engine.llm_engine import LLMEngine
 from vllm.sampling_params import SamplingParams
 from vllm.utils import random_uuid
-
+# tuned model path /home/recsys1_user01/recipe_recommender/llm_work/recipe_recommender/models/llm_recs
 class vllm_recomender:
-    def __init__(self, model_path: str):
+    def __init__(self, model_path="Qwen/Qwen3-14b"):
         self.model_path = model_path
         self.engine, self.tokenizer = self.initialize_model(model_path)
 

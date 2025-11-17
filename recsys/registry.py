@@ -10,43 +10,72 @@ import logging
 logger = logging.getLogger(__name__)
 
 MODEL_REGISTRY: Dict[str, Dict] = {
-    "ease_popular_v1": {
+    "ease_popular": {
         "class": EasePopularRecommender,
         "path": "models/ease_popular",
     },
-    "llm_recs_v1": {
+    "llm_recs": {
         "class": LLMRecommender,
         "path": "models/llm_recs",
     },
 }
 
-DEFAULT_EXPERIMENT = {
-    "name": "main_recs_ab",
-    "variants": {
-        "ease_popular": 0.5,
-        "llm_recs": 0.5,
-        # можно вывести 0.8 / 0.2 и т.п.
-    },
-}
+
 
 from .ab_testing import choose_variant_for_user  # noqa
 
 
-def get_recommender_for_user(user_id: int):
-    variant = choose_variant_for_user(user_id, DEFAULT_EXPERIMENT)
+# def get_recommender_for_user(user_id: int):
+#     variant = choose_variant_for_user(user_id, DEFAULT_EXPERIMENT)
 
-    cfg = MODEL_REGISTRY[variant]
-    cls = cfg["class"]
+#     cfg = MODEL_REGISTRY[variant]
+#     cls = cfg["class"]
 
-    logger.info(
-        "get_recommender_for_user: user_id=%s, experiment=%s, variant=%s, model_class=%s, model_path=%s",
-        user_id,
-        DEFAULT_EXPERIMENT["name"],
-        variant,
-        cls.__name__,
-        cfg.get("path"),
-    )
+#     logger.info(
+#         "get_recommender_for_user: user_id=%s, experiment=%s, variant=%s, model_class=%s, model_path=%s",
+#         user_id,
+#         DEFAULT_EXPERIMENT["name"],
+#         variant,
+#         cls.__name__,
+#         cfg.get("path"),
+#     )
 
-    model = cls()
-    model.load(cfg["path"])
-    return model
+#     model = cls()
+#     model.load(cfg["path"])
+#     return model
+
+class RecModel:
+    def __init__(self):
+        
+
+        # cfg = MODEL_REGISTRY[variant]
+        # cls = cfg["class"]
+
+        # logger.info(
+        #     "get_recommender_for_user: user_id=%s, experiment=%s, variant=%s, model_class=%s, model_path=%s",
+        #     user_id,
+        #     DEFAULT_EXPERIMENT["name"],
+        #     variant,
+        #     cls.__name__,
+        #     cfg.get("path"),
+        # )
+
+        # model = cls()
+        # model.load(cfg["path"])
+
+        # EASE
+        
+        self.ease_model = EasePopularRecommender()
+        # self.ease_popular = ease_model.load('models/ease_popular')
+
+        self.llm_recs = LLMRecommender()
+        # self.llm_recs = llm_model.load('models/llm_recs')
+    def models_dict_generator(self):
+        models_dict = {'ease_popular': self.ease_model,'llm_recs': self.llm_recs}
+        return models_dict
+    
+
+rec_model = RecModel()
+models_dict = rec_model.models_dict_generator()
+print(models_dict)
+
