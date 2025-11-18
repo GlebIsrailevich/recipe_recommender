@@ -5,6 +5,7 @@ from .models.ease import EASERecommender
 # from .models.als import ALSRecommender
 from recsys.models.ease_popular.inference import EasePopularRecommender
 from recsys.models.llm_recs import LLMRecommender
+from recsys.models.knn_recipes.wrap import KNNWrapperRecommender 
 
 import logging
 logger = logging.getLogger(__name__)
@@ -17,6 +18,10 @@ MODEL_REGISTRY: Dict[str, Dict] = {
     "llm_recs": {
         "class": LLMRecommender,
         "path": "models/llm_recs",
+    },
+    "knn_recipes": {
+        "class": KNNWrapperRecommender,
+        "path": "models/knn_recipes",  # папка с knn_model.pkl + p2v/v2p, как ты сделал
     },
 }
 
@@ -69,9 +74,12 @@ class RecModel:
         # self.ease_popular = ease_model.load('models/ease_popular')
 
         self.llm_recs = LLMRecommender()
+        
+        self.knn_recs = KNNWrapperRecommender()
+        self.knn_recs.load('models/knn_recipes')
         # self.llm_recs = llm_model.load('models/llm_recs')
     def models_dict_generator(self):
-        models_dict = {'ease_popular': self.ease_model,'llm_recs': self.llm_recs}
+        models_dict = {'ease_popular': self.ease_model,'llm_recs': self.llm_recs, 'knn_recipes': self.knn_recs}
         return models_dict
     
 

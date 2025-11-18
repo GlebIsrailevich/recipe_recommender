@@ -950,8 +950,9 @@ with recs_col:
             DEFAULT_EXPERIMENT = {
                 "name": "main_recs_ab",
                 "variants": {
-                    "ease_popular": 0.5,
-                    "llm_recs": 0.5,
+                    "ease_popular": 1/3,
+                    "llm_recs": 1/3,
+                    "knn_recipes": 1/3
                     # можно вывести 0.8 / 0.2 и т.п.
                 },
             }
@@ -960,6 +961,7 @@ with recs_col:
                 variant = choose_variant_for_user(user_id, DEFAULT_EXPERIMENT)
                 logger.debug("Chosen recs variant: %s (type=%s)", variant, type(variant))
                 recsys_model = MODELS_DICT[variant]
+                print(recsys_model)
                 logger.debug("recsys_model: %s", getattr(recsys_model, "__class__", recsys_model))
             except Exception:
                 logger.exception(
