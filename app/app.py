@@ -950,8 +950,8 @@ with recs_col:
             DEFAULT_EXPERIMENT = {
                 "name": "main_recs_ab",
                 "variants": {
-                    "ease_popular": 0,
-                    "llm_recs": 1,
+                    "ease_popular": 0.5,
+                    "llm_recs": 0.5,
                     "knn_recipes": 0
                     # можно вывести 0.8 / 0.2 и т.п.
                 },
