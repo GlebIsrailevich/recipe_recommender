@@ -1,0 +1,5 @@
+EASEMODEL = "D:/gleb/Recsys_projeccts/sirius_seminars/vkusvill_case/src/ease_pipeline/data/ease_model.pkl"
+MAPPING = "D:/gleb/Recsys_projeccts/sirius_seminars/vkusvill_case/src/ease_pipeline/data/items_dict.json"
+# VKUSVILL_MAPPING = "D:/gleb/Recsys_projeccts/sirius_seminars/vkusvill_case/src/ease_pipeline/data/cooker2vkussvil.json"
+POV2VV = "D:/gleb/Recsys_projeccts/sirius_seminars/vkusvill_case/src/ease_pipeline/data/items_dict_pov2vv_str.json"
+VV2POV = "D:/gleb/Recsys_projeccts/sirius_seminars/vkusvill_case/src/ease_pipeline/data/items_dict_vv2pov_str.json"

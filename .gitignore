@@ -167,7 +167,7 @@ interactions_df.csv
 src/instructions
 src/ease_pipeline/data
 src/matching/df_matches_faiss_new.csv
-src\matching\df_matches_stupid.csv
+src/matching\df_matches_stupid.csv
 src/matching
 src/tests
 src/ease_pipeline/simple_example.py
@@ -177,3 +177,11 @@ src/matching_pipeline
 src/postprocessing.py
 src/ease_validation_results.csv
 src/ease_popular/data
+src/ease_popular/data
+src/matcher_export
+src/new_matcher
+matcher_export
+eda_cooker.ipynb
+src/ease_model_feat/data
+waste
+src/ease_validation_results.csv
