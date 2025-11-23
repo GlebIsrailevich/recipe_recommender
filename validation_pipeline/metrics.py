@@ -45,7 +45,9 @@ class RankingMetrics:
             user_recs = recs[:k]
             user_truth = ground_truth.get(user_id, set())
             relevant_count = sum(1 for item in user_recs if item in user_truth)
-            precisions.append(relevant_count / k)
+            # Use actual length of recommendations, not k, to avoid penalizing when fewer recs are returned
+            actual_length = len(user_recs) if len(user_recs) > 0 else 1  # Avoid division by zero
+            precisions.append(relevant_count / actual_length)
         return float(np.mean(precisions)) if precisions else 0.0
 
     def recall(self, recommendations: dict[int, Sequence[int]], ground_truth: dict[int, set[int]], top_k: int | None = None) -> float:
@@ -139,7 +141,9 @@ class RankingMetrics:
 
         hits = [item in truth_set for item in recs]
         hit = 1.0 if any(hits) else 0.0
-        precision_val = sum(hits) / k
+        # Use actual length of recommendations, not k, to avoid penalizing when fewer recs are returned
+        actual_length = len(recs) if len(recs) > 0 else 1  # Avoid division by zero
+        precision_val = sum(hits) / actual_length
         recall_val = (sum(hits) / len(truth_set)) if truth_set else 0.0
 
         rr_val = 0.0
